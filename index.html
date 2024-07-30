@@ -1,8 +1,396 @@
-<html>
-    <body>
-        <h5>
-            Hi losered and anyone else from EWOW
-        </h5>
-        <h3> Yes I got suspended for this lol </h3>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWOW Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1, h2, h5 {
+            text-align: center;
+        }
+
+        #setup {
+            margin-bottom: 20px;
+        }
+
+        #participants, #eliminationPercentage, #lives {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        button {
+            display: block;
+            margin: 0 auto;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .inline {
+            display: inline-block;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group label {
+            margin-left: 10px;
+        }
+
+        .round-summary {
+            margin: 20px 0;
+        }
+
+        .feelings {
+            margin: 10px 0;
+        }
+        .eliminated {
+    color: red;
+		}
+		.lost-life {
+    color: DarkGoldenRod; /* Ignore this lol */
+		}
+        
+	.header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="fu.png" alt="TWOW Simulator Image" width="50" height="50">
+        <h1>TWOW Simulator</h1>
+        <img src="ja.png" alt="Second Image" width="50" height="50">
+    </div>
+    <h5> By lipu Kijoke </h5>
+    <div id="setup">
+        <label for="participants">Enter Participants (comma separated):</label>
+        <input type="text" id="participants" placeholder="e.g., 4DJumpman256, losered, Srimochi, coolunan, TieTiePerson, etc.">
+        <label for="eliminationPercentage">Enter Elimination Percentage per Round:</label>
+        <input type="number" id="eliminationPercentage" placeholder="e.g., 25" min="1" max="99">
+        <div class="input-group">
+            <input type="checkbox" id="activateLives">
+            <label for="activateLives">Activate Lives</label>
+            <input type="number" id="lives" placeholder="Enter number of lives" min="1" class="hidden inline">
+        </div>
+        <button id="start">Start Simulation</button>
+    </div>
+    <div id="simulation" class="hidden">
+        <h2>Simulation</h2>
+        <div id="rounds"></div>
+        <button id="next-round">Next Round</button>
+        <button id="restart" class="hidden">Restart</button>
+    </div>
+    <script>
+        document.getElementById('start').addEventListener('click', startSimulation);
+        document.getElementById('next-round').addEventListener('click', nextRound);
+        document.getElementById('restart').addEventListener('click', restartSimulation);
+        document.getElementById('activateLives').addEventListener('change', toggleLivesInput);
+
+        let participants = [];
+        let lives = {};
+        let scores = {};
+        let roundNumber = 0;
+        let eliminationPercentage = 0;
+        let useLives = false;
+        let prompts = [
+            "What happened to the 31st of September?",
+            "If a tree falls in a forest, does it make a sound?",
+            "What did 10 say when they upgraded to 11?",
+            "How do you make a perfect cup of coffee?",
+            "You are a trigger happy safety inspector who is on a banning rampage. What harmless activity do you ban?",
+            "As a professional dream interpreter with a wild imagination, what's the strangest dream you've ever analyzed?",
+            "How can you beat the cold this winter season?",
+            "Write a haiku about plants",
+            "What should the next prompt be?",
+            "What would you do if you became the next president?",
+            "Acronymize a word by describing the opposite of its meaning.",
+            "Make us feel sympathetic for something we would never feel sympathetic towards.",
+            "Why do shiny cowards always ruin our lives?",
+            "Write about awkward aardvarks without using the letter A",
+            "Try to sound as intelligent as possible while mispelling every word.",
+            "Tell me a fun fact, best fun fact wins.",
+            "I have lost my marbles. How do I get them back?",
+            "Where should the voters rank your response?"
+        ];
+        let lastEpisodePrompts = [
+            "What is the 1 word of wisdom? Use 10 words.",
+            "What are the 10 words of wisdom?",
+            "After gaining wisdom, what happens?",
+            "What will you do if you win TWOW?"
+        ];
+        let usedPrompts = [];
+        let usedLastEpisodePrompts = [];
+        feelings = [
+    "is feeling confident!",
+    "thinks they will lose.",
+    "is unsure about their chances.",
+    "feels optimistic!",
+    "is nervous.",
+    "believes they have a good chance.",
+    "is excited for the challenge!",
+    "feels a bit overwhelmed.",
+    "thinks they have a strong shot.",
+    "is feeling determined.",
+    "is a bit doubtful.",
+    "is ready to give it their all!"
+];
+
+        function toggleLivesInput() {
+            const livesInput = document.getElementById('lives');
+            if (document.getElementById('activateLives').checked) {
+                livesInput.classList.remove('hidden');
+                useLives = true;
+            } else {
+                livesInput.classList.remove('hidden');
+                useLives = false;
+            }
+        }
+
+        function startSimulation() {
+            const input = document.getElementById('participants').value;
+            participants = input.split(',').map(name => name.trim());
+            eliminationPercentage = parseInt(document.getElementById('eliminationPercentage').value);
+
+            if (participants.length < 2) {
+                alert("Please enter at least two participants.");
+                return;
+            }
+            if (isNaN(eliminationPercentage) || eliminationPercentage < 1 || eliminationPercentage > 99) {
+                alert("Please enter a valid elimination percentage between 1 and 99.");
+                return;
+            }
+
+if (useLives) {
+    const initialLives = parseInt(document.getElementById('lives').value);
+    if (isNaN(initialLives) || initialLives < 1) {
+        alert("Please enter a valid number of lives.");
+        return;
+    }
+    participants.forEach(participant => {
+        lives[participant] = initialLives;
+    });
+} else {
+    participants.forEach(participant => {
+        lives[participant] = 1;
+    });
+}
+
+            
+
+            // Assign initial scores as percentages between 30% and 70%
+            scores = {};
+            participants.forEach(participant => {
+                const baseScore = Math.floor(Math.random() * 41) + 30; // Random number between 30 and 70
+                scores[participant] = {
+                    baseScore: baseScore,
+                    currentScore: baseScore // Initial score within range
+                };
+            });
+
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('simulation').classList.remove('hidden');
+            nextRound();
+        }
+
+        function getRandomPrompt() {
+    // Last episode is defined when there are only 2 participants left, and they each have 1 life
+    let isLastEpisode = participants.length === 2 && participants.every(participant => lives[participant] === 1);
+    let promptList = isLastEpisode ? lastEpisodePrompts : prompts;
+    let usedList = isLastEpisode ? usedLastEpisodePrompts : usedPrompts;
+
+    if (promptList.length === usedList.length) {
+        // All prompts have been used, reset the used list
+        usedList.length = 0;
+    }
+
+    let availablePrompts = promptList.filter(p => !usedList.includes(p));
+    let randomPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
+    usedList.push(randomPrompt);
+    return randomPrompt;
+}
+
+        function getRandomFeeling() {
+            const randomFeelings = [];
+            const availableParticipants = participants.slice(); // Copy of participants array
+            while (randomFeelings.length < 3 && availableParticipants.length > 0) {
+                const participantIndex = Math.floor(Math.random() * availableParticipants.length);
+                const participant = availableParticipants.splice(participantIndex, 1)[0];
+                const feeling = `${participant} ${feelings[Math.floor(Math.random() * feelings.length)]}`;
+                randomFeelings.push(feeling);
+            }
+            return randomFeelings;
+        }
+
+        function nextRound() {
+            if (participants.length <= 1) {
+                document.getElementById('rounds').innerHTML += `<h3>Winner: ${participants[0]}</h3>`;
+                document.getElementById('next-round').classList.add('hidden');
+                document.getElementById('restart').classList.remove('hidden');
+                return;
+            }
+
+            roundNumber++;
+            let roundType = (roundNumber % 2 === 1) ? 'A' : 'B';
+            let roundTitle = `Ten Words of Wisdom ${Math.ceil(roundNumber / 2)}${roundType}`;
+            
+            if (roundType === 'A') {
+                const prompt = getRandomPrompt();
+                const feelingsReport = getRandomFeeling();
+
+                document.getElementById('rounds').innerHTML += `
+                    <div class="round-summary">
+                        <h3>${roundTitle}</h3>
+                        <p>Next Prompt: ${prompt}</p>
+                        <div class="feelings">
+                            ${feelingsReport.map(f => `<p>${f}</p>`).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                const prompt = usedPrompts[usedPrompts.length - 1]; // Use the prompt from the last 1A round
+                const scoresList = participants.map(participant => {
+                    const baseScore = scores[participant].baseScore;
+                    const score = Math.floor(Math.random() * 41) + (baseScore - 30); // Random score within 30 points of baseScore
+                    return { name: participant, score: score };
+                });
+
+                scoresList.sort((a, b) => b.score - a.score);
+
+                const eliminationCount = Math.floor((eliminationPercentage / 100) * participants.length);
+                let eliminated = scoresList.slice(-eliminationCount);
+
+                let actuallyEliminated = [];
+                if (useLives) {
+                    eliminated.forEach(e => {
+                        lives[e.name]--;
+                        if (lives[e.name] <= 0) {
+                            actuallyEliminated.push(e);
+                        }
+                    });
+                    eliminated = actuallyEliminated;
+                }
+
+                const minLives = Math.min(...Object.values(lives));
+
+                if (useLives && minLives === 1) {
+                    // I have no clue why it doesn't work without this
+                    participants = participants.filter(p => !eliminated.some(e => e.name === p));
+                } else {
+                    participants = participants.filter(p => !eliminated.some(e => e.name === p));
+                }
+
+                if (useLives) {
+                    document.getElementById('rounds').innerHTML += `
+                         <div class="round-summary">
+            <h3>${roundTitle}</h3>
+            <p>Prompt: ${prompt}</p>
+            <ul>
+                ${scoresList.map(s => {
+                    const isEliminated = actuallyEliminated.some(e => e.name === s.name);
+                    return `<li class="${isEliminated ? 'eliminated' : ''}">${s.name}: ${s.score}% (Lives: ${lives[s.name]})</li>`;
+                }).join('')}
+            </ul>
+            ${actuallyEliminated.length > 0 ? `<p>Eliminated: ${actuallyEliminated.map(e => e.name).join(', ')}</p>` : ''}
+        </div>
+                    `;
+                } else {
+                    document.getElementById('rounds').innerHTML += `
+                        <div class="round-summary">
+        <h3>${roundTitle}</h3>
+        <p>Prompt: ${prompt}</p>
+        <ul>
+            ${scoresList.map(s => {
+                const isEliminated = eliminated.some(e => e.name === s.name);
+                return `<li class="${isEliminated ? 'eliminated' : ''}">${s.name}: ${s.score}%</li>`;
+            }).join('')}
+        </ul>
+        ${eliminated.length > 0 ? `<p>Eliminated: ${eliminated.map(e => e.name).join(', ')}</p>` : ''}
+    </div>
+                    `;
+                }
+            }
+        }
+
+        function restartSimulation() {
+            document.getElementById('setup').classList.remove('hidden');
+            document.getElementById('simulation').classList.add('hidden');
+            document.getElementById('rounds').innerHTML = '';
+            document.getElementById('next-round').classList.remove('hidden');
+            document.getElementById('restart').classList.add('hidden');
+            participants = [];
+            lives = {};
+            scores = {};
+            roundNumber = 0;
+            eliminationPercentage = 0;
+            useLives = false;
+            prompts = [
+                "What happened to the 31st of September?",
+                "If a tree falls in a forest, does it make a sound?",
+                "What did 10 say when they upgraded to 11?",
+                "How do you make a perfect cup of coffee?",
+                "You are a trigger happy safety inspector who is on a banning rampage. What harmless activity do you ban?",
+                "As a professional dream interpreter with a wild imagination, what's the strangest dream you've ever analyzed?",
+                "How can you beat the cold this winter season?",
+                "Write a haiku about plants",
+                "What should the next prompt be?",
+                "What would you do if you became the next president?",
+                "Acronymize a word by describing the opposite of its meaning.",
+                "Make us feel sympathetic for something we would never feel sympathetic towards.",
+                "Why do shiny cowards always ruin our lives?",
+                "Write about awkward aardvarks without using the letter A",
+                "Try to sound as intelligent as possible while mispelling every word.",
+                "Tell me a fun fact, best fun fact wins.",
+                "I have lost my marbles. How do I get them back?",
+                "Where should the voters rank your response?"
+            ];
+            lastEpisodePrompts = [
+                "What is the 1 word of wisdom? Use 10 words.",
+                "What are the 10 words of wisdom?",
+                "After gaining wisdom, what happens?",
+                "What will you do if you win TWOW?"
+            ];
+            usedPrompts = [];
+            usedLastEpisodePrompts = [];
+            feelings = [
+    "is feeling confident!",
+    "thinks they will lose.",
+    "is unsure about their chances.",
+    "feels optimistic!",
+    "is nervous.",
+    "believes they have a good chance.",
+    "is excited for the challenge!",
+    "feels a bit overwhelmed.",
+    "thinks they have a strong shot.",
+    "is feeling determined.",
+    "is a bit doubtful.",
+    "is ready to give it their all!"
+];
+            document.getElementById('activateLives').checked = false;
+            document.getElementById('lives').classList.add('hidden');
+        }
+    </script>
+</body>
 </html>
